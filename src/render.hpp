@@ -15,29 +15,25 @@ public:
         glm::vec2 pos;
         glm::vec3 color;
 
-        static VkVertexInputBindingDescription getBindingDescription()
+        static vk::VertexInputBindingDescription getBindingDescription()
         {
-            VkVertexInputBindingDescription bindingDescription = {};
-            bindingDescription.binding = 0;
-            bindingDescription.stride = sizeof(Vertex);
-            bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-            return bindingDescription;
+            return vk::VertexInputBindingDescription(0, sizeof(Vertex),
+                                                vk::VertexInputRate::eVertex);
         }
 
-        static std::array<VkVertexInputAttributeDescription, 2>
+        static std::array<vk::VertexInputAttributeDescription, 2>
             getAttributeDescriptions()
         {
-            std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions = {};
+            std::array<vk::VertexInputAttributeDescription, 2> attributeDescriptions = {};
 
             attributeDescriptions[0].binding = 0;
             attributeDescriptions[0].location = 0;
-            attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+            attributeDescriptions[0].format = vk::Format::eR32G32Sfloat;
             attributeDescriptions[0].offset = offsetof(Vertex, pos);
 
             attributeDescriptions[1].binding = 0;
             attributeDescriptions[1].location = 1;
-            attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+            attributeDescriptions[1].format = vk::Format::eR32G32B32Sfloat;
             attributeDescriptions[1].offset = offsetof(Vertex, color);
 
             return attributeDescriptions;
@@ -64,7 +60,7 @@ public:
     }
     void waitIdle()
     {
-        vkDeviceWaitIdle(m_device);
+        m_device->waitIdle();
     }
 
     virtual ~Render();
@@ -75,28 +71,36 @@ private:
     GLFWwindow *m_window;
     vk::UniqueInstance m_instance;
     vk::UniqueDebugReportCallbackEXT m_debugCallback;
-    VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
-    VkDevice m_device;
-    VkQueue m_graphicsQueue;
-    VkQueue m_presentQueue;
-    VkSurfaceKHR m_surface;
-    VkSwapchainKHR m_swapChain;
-    std::vector<VkImage> m_swapChainImages;
-    VkFormat m_swapChainImageFormat;
-    VkExtent2D m_swapChainExtent;
-    std::vector<VkImageView> m_swapChainImageViews;
-    std::vector<VkFramebuffer> m_swapChainFramebuffers;
+    vk::UniqueSurfaceKHR m_surface;
+    vk::PhysicalDevice m_physicalDevice;
+    vk::UniqueDevice m_device;
+    vk::Queue m_graphicsQueue;
+    vk::Queue m_presentQueue;
+    vk::UniqueSwapchainKHR m_swapChain;
+    std::vector<vk::Image> m_swapChainImages;
+    vk::Format m_swapChainImageFormat;
+    vk::Extent2D m_swapChainExtent;
+    std::vector<vk::UniqueImageView> m_swapChainImageViews;
+    std::vector<vk::UniqueFramebuffer> m_swapChainFramebuffers;
 
-    VkRenderPass m_renderPass;
-    VkPipelineLayout m_pipelineLayout;
-    VkPipeline m_graphicsPipeline;
+    vk::UniqueRenderPass m_renderPass;
+    vk::UniquePipelineLayout m_pipelineLayout;
+    vk::UniquePipeline m_graphicsPipeline;
 
-    VkCommandPool m_commandPool;
-    std::vector<VkCommandBuffer> m_commandBuffers;
+    vk::UniqueCommandPool m_commandPool;
 
-    std::vector<VkSemaphore> m_imageAvailableSemaphores;
-    std::vector<VkSemaphore> m_renderFinishedSemaphores;
-    std::vector<VkFence> m_inFlightFences;
+    uint32_t findMemoryType(uint32_t typeFilter,
+                            vk::MemoryPropertyFlags properties);
+    vk::UniqueBuffer m_vertexBuffer;
+    vk::UniqueDeviceMemory m_vertexBufferMemory;
+    vk::UniqueBuffer m_indexBuffer;
+    vk::UniqueDeviceMemory m_indexBufferMemory;
+
+    std::vector<vk::UniqueCommandBuffer> m_commandBuffers;
+
+    std::vector<vk::UniqueSemaphore> m_imageAvailableSemaphores;
+    std::vector<vk::UniqueSemaphore> m_renderFinishedSemaphores;
+    std::vector<vk::UniqueFence> m_inFlightFences;
     size_t m_currentFrame = 0;
     bool framebufferResized = false;
 
@@ -105,7 +109,6 @@ private:
     std::vector<const char*> getRequiredExtension();
     int createInstance();
     int setupDebugMessage();
-    void destroyDebugMessage();
     static VkBool32 debugCallback(VkDebugReportFlagsEXT flags,
                                   VkDebugReportObjectTypeEXT objectType,
                                   uint64_t object, size_t location,
@@ -124,25 +127,25 @@ private:
         }
     };
     int pickPhysicalDevice();
-    bool isDeviceSuitable(VkPhysicalDevice device);
-    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+    bool isDeviceSuitable(vk::PhysicalDevice device);
+    bool checkDeviceExtensionSupport(vk::PhysicalDevice device);
+    QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device);
 
     int createLogicalDevice();
 
     static const std::vector<const char *> deviceExtensions;
     struct SwapChainSupportDetails {
-        VkSurfaceCapabilitiesKHR capabilities;
-        std::vector<VkSurfaceFormatKHR> formats;
-        std::vector<VkPresentModeKHR> presentModes;
+        vk::SurfaceCapabilitiesKHR capabilities;
+        std::vector<vk::SurfaceFormatKHR> formats;
+        std::vector<vk::PresentModeKHR> presentModes;
     };
     int createSwapChain();
-    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
-    VkSurfaceFormatKHR chooseSwapSurfaceFormat(
-            const std::vector<VkSurfaceFormatKHR>& availableFormats);
-    VkPresentModeKHR chooseSwapPresentMode(
-            const std::vector<VkPresentModeKHR>& availablePresentModes);
-    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+    SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice device);
+    vk::SurfaceFormatKHR chooseSwapSurfaceFormat(
+            const std::vector<vk::SurfaceFormatKHR>& availableFormats);
+    vk::PresentModeKHR chooseSwapPresentMode(
+            const std::vector<vk::PresentModeKHR>& availablePresentModes);
+    vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
 
     int createImageViews();
 
@@ -152,11 +155,13 @@ private:
 
     int createGraphicsPipeline();
     static std::vector<char> readFile(const std::string& filename);
-    VkShaderModule createShaderModule(const std::vector<char>& code);
+    vk::UniqueShaderModule createShaderModule(const std::vector<char>& code);
 
     int createFramebuffers();
 
     int createCommandPool();
+    int createVertexBuffer();
+    int createIndexBuffer();
     int createCommandBuffers();
     int createSyncObjects();
 
