@@ -61,45 +61,53 @@ VkResult vkCreateDebugReportCallbackEXT(
 
 Render::~Render()
 {
-    m_device->waitIdle();
+    // m_device->waitIdle();
 
-    std::cout << __LINE__ << std::endl;
-    cleanupSwapChain();
+    // std::cout << __LINE__ << std::endl;
+    // cleanupSwapChain();
 
-    m_device->destroyBuffer(*m_indexBuffer);
-    m_device->freeMemory(*m_indexBufferMemory);
+    // m_device->destroyBuffer(*m_indexBuffer);
+    // m_device->freeMemory(*m_indexBufferMemory);
 
-    m_device->destroyBuffer(*m_vertexBuffer);
-    m_device->freeMemory(*m_vertexBufferMemory);
+    // m_device->destroyBuffer(*m_vertexBuffer);
+    // m_device->freeMemory(*m_vertexBufferMemory);
 
-    std::cout << "size " << m_inFlightFences.size() << std::endl;
+    // std::cout << "size " << m_inFlightFences.size() << std::endl;
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        // vkDestroySemaphore(m_device, m_renderFinishedSemaphores.at(i), nullptr);
-        // vkDestroySemaphore(m_device, m_imageAvailableSemaphores.at(i), nullptr);
-        // vkDestroyFence(m_device, m_inFlightFences.at(i), nullptr);
-        m_device->destroySemaphore(*m_renderFinishedSemaphores.at(i));
-        m_device->destroySemaphore(*m_imageAvailableSemaphores.at(i));
-        m_device->destroyFence(*m_inFlightFences.at(i));
-    }
+    // for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        // // vkDestroySemaphore(m_device, m_renderFinishedSemaphores.at(i), nullptr);
+        // // vkDestroySemaphore(m_device, m_imageAvailableSemaphores.at(i), nullptr);
+        // // vkDestroyFence(m_device, m_inFlightFences.at(i), nullptr);
+        // m_device->destroySemaphore(*m_renderFinishedSemaphores.at(i));
+        // m_device->destroySemaphore(*m_imageAvailableSemaphores.at(i));
+        // m_device->destroyFence(*m_inFlightFences.at(i));
+    // }
 
-    // vkDestroyCommandPool(m_device, m_commandPool, nullptr);
-    m_device->destroyCommandPool(*m_commandPool);
+    // // vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+    // m_device->destroyCommandPool(*m_commandPool);
 
-    // vkDestroyDevice(m_device, nullptr);
-    m_device->destroy();
+    // // vkDestroyDevice(m_device, nullptr);
+    // m_device->destroy();
 
 #ifndef NDDEBUG
-    m_instance->destroyDebugReportCallbackEXT(*m_debugCallback);
+    // m_instance->destroyDebugReportCallbackEXT(*m_debugCallback);
 #endif
 
-    m_instance->destroySurfaceKHR(*m_surface);
-    m_instance->destroy();
+    // m_instance->destroySurfaceKHR(*m_surface);
+    // m_instance->destroy();
 
-    glfwDestroyWindow(m_window);
+    // for (auto &imageView : m_swapChainImageViews) {
+        // m_device->destroyImageView(*imageView);
+    // }
+    // m_device->destroySwapchainKHR(*m_swapChain);
+    // m_device->destroy();
+    // m_instance->destroySurfaceKHR(*m_surface);
+    // m_instance->destroy();
 
-    glfwTerminate();
-    std::cout << __LINE__ << std::endl;
+    // glfwDestroyWindow(m_window);
+
+    // glfwTerminate();
+    // std::cout << __LINE__ << std::endl;
 }
 
 int Render::init()
@@ -237,6 +245,8 @@ int Render::render()
     }
 
     m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+
+    m_device->waitIdle();
 
     return 0;
 }
@@ -385,7 +395,8 @@ int Render::createSurface()
         return -1;
     }
 
-    *m_surface = surface;
+    m_surface = vk::UniqueSurfaceKHR(surface,
+                                     vk::SurfaceKHRDeleter(*m_instance));
 
     return 0;
 }
