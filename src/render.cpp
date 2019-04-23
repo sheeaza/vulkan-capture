@@ -64,21 +64,42 @@ Render::~Render()
     m_device->waitIdle();
 
     std::cout << __LINE__ << std::endl;
-    // cleanupSwapChain();
+    cleanupSwapChain();
 
-    // for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+    m_device->destroyBuffer(*m_indexBuffer);
+    m_device->freeMemory(*m_indexBufferMemory);
+
+    m_device->destroyBuffer(*m_vertexBuffer);
+    m_device->freeMemory(*m_vertexBufferMemory);
+
+    std::cout << "size " << m_inFlightFences.size() << std::endl;
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         // vkDestroySemaphore(m_device, m_renderFinishedSemaphores.at(i), nullptr);
         // vkDestroySemaphore(m_device, m_imageAvailableSemaphores.at(i), nullptr);
         // vkDestroyFence(m_device, m_inFlightFences.at(i), nullptr);
-    // }
+        m_device->destroySemaphore(*m_renderFinishedSemaphores.at(i));
+        m_device->destroySemaphore(*m_imageAvailableSemaphores.at(i));
+        m_device->destroyFence(*m_inFlightFences.at(i));
+    }
 
     // vkDestroyCommandPool(m_device, m_commandPool, nullptr);
+    m_device->destroyCommandPool(*m_commandPool);
 
     // vkDestroyDevice(m_device, nullptr);
+    m_device->destroy();
+
+#ifndef NDDEBUG
+    m_instance->destroyDebugReportCallbackEXT(*m_debugCallback);
+#endif
+
+    m_instance->destroySurfaceKHR(*m_surface);
+    m_instance->destroy();
 
     glfwDestroyWindow(m_window);
 
     glfwTerminate();
+    std::cout << __LINE__ << std::endl;
 }
 
 int Render::init()
@@ -607,6 +628,7 @@ int Render::createImageViews()
 {
     int ret;
 
+    m_swapChainImageViews.clear();
     m_swapChainImageViews.reserve(m_swapChainImages.size());
 
     for (size_t i = 0; i < m_swapChainImages.size(); i++) {
@@ -760,6 +782,8 @@ vk::UniqueShaderModule Render::createShaderModule(const std::vector<char>& code)
 int Render::createFramebuffers()
 {
     int ret;
+
+    m_swapChainFramebuffers.clear();
 
     m_swapChainFramebuffers.reserve(m_swapChainImageViews.size());
 
@@ -930,6 +954,7 @@ void Render::cleanupSwapChain()
 
     for (auto &commandBuffer : m_commandBuffers) {
         commandBuffer.reset();
+        commandBuffer.release();
     }
 
     m_device->destroyPipeline(*m_graphicsPipeline);
