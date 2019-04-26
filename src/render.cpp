@@ -96,7 +96,7 @@ Render::~Render()
     // // vkDestroyDevice(m_device, nullptr);
     // m_device->destroy();
 
-#ifndef NDDEBUG
+#ifndef NDEBUG
     // m_instance->destroyDebugReportCallbackEXT(*m_debugCallback);
 #endif
 
@@ -123,7 +123,7 @@ void Render::init()
 
     createInstance();
 
-#ifndef NDDEBUG
+#ifndef NDEBUG
     setupDebugMessage();
 #endif
 
@@ -249,7 +249,7 @@ std::vector<const char*> Render::getRequiredExtension()
     std::vector<const char*> extensions(glfwExtensions,
                                         glfwExtensions + glfwExtensionCount);
 
-#ifndef NDDEBUG
+#ifndef NDEBUG
     extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 #endif
 
@@ -258,7 +258,7 @@ std::vector<const char*> Render::getRequiredExtension()
 
 void Render::createInstance()
 {
-#ifndef NDDEBUG
+#ifndef NDEBUG
     if (!checkValidationLayerSupport()) {
         std::cout << "validation layers not suppport!" << std::endl;
     }
@@ -271,7 +271,7 @@ void Render::createInstance()
     vk::ApplicationInfo appInfo("triangle", 1, "vulkan", 1, VK_API_VERSION_1_0);
     vk::InstanceCreateInfo instanceCreateInfo({}, &appInfo);
 
-#ifndef NDDEBUG
+#ifndef NDEBUG
     {
     uint32_t extensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
@@ -285,7 +285,7 @@ void Render::createInstance()
     }
 #endif
 
-#ifndef NDDEBUG
+#ifndef NDEBUG
     instanceCreateInfo.enabledLayerCount =
         static_cast<uint32_t>(validationLayers.size());
     instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
@@ -441,7 +441,7 @@ void Render::createLogicalDevice()
     vk::DeviceCreateInfo
         createInfo({}, static_cast<uint32_t>(queueCreateInfos.size()),
                    queueCreateInfos.data(),
-#ifndef NDDEBUG
+#ifndef NDEBUG
                    static_cast<uint32_t>(validationLayers.size()),
                    validationLayers.data(),
 #else
