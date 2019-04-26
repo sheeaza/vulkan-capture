@@ -4,6 +4,9 @@ project(texture)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+#fix stdlib.h not found issue
+set(CMAKE_NO_SYSTEM_FROM_IMPORTED 1)
+
 add_subdirectory(src)
 
 if(NOT CMAKE_BUILD_TYPE)

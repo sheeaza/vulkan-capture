@@ -1,6 +1,7 @@
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
+#define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <vector>
 #include <string>
@@ -14,6 +15,7 @@ public:
     {
         glm::vec2 pos;
         glm::vec3 color;
+        glm::vec2 texCoord;
 
         static vk::VertexInputBindingDescription getBindingDescription()
         {
@@ -21,10 +23,10 @@ public:
                                                 vk::VertexInputRate::eVertex);
         }
 
-        static std::array<vk::VertexInputAttributeDescription, 2>
+        static std::array<vk::VertexInputAttributeDescription, 3>
             getAttributeDescriptions()
         {
-            std::array<vk::VertexInputAttributeDescription, 2> attributeDescriptions = {};
+            std::array<vk::VertexInputAttributeDescription, 3> attributeDescriptions = {};
 
             attributeDescriptions[0].binding = 0;
             attributeDescriptions[0].location = 0;
@@ -35,6 +37,11 @@ public:
             attributeDescriptions[1].location = 1;
             attributeDescriptions[1].format = vk::Format::eR32G32B32Sfloat;
             attributeDescriptions[1].offset = offsetof(Vertex, color);
+
+            attributeDescriptions[2].binding = 0;
+            attributeDescriptions[2].location = 2;
+            attributeDescriptions[2].format = vk::Format::eR32G32Sfloat;
+            attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
 
             return attributeDescriptions;
         }
@@ -47,8 +54,8 @@ public:
         alignas(16) glm::mat4 proj;
     };
 
-    int init();
-    int render();
+    void init();
+    void render();
     bool checkValidationLayerSupport();
     bool shouldStop()
     {
@@ -84,17 +91,27 @@ private:
     std::vector<vk::UniqueFramebuffer> m_swapChainFramebuffers;
 
     vk::UniqueRenderPass m_renderPass;
+    vk::UniqueDescriptorSetLayout m_descriptorSetLayout;
     vk::UniquePipelineLayout m_pipelineLayout;
     vk::UniquePipeline m_graphicsPipeline;
 
     vk::UniqueCommandPool m_commandPool;
 
-    uint32_t findMemoryType(uint32_t typeFilter,
-                            vk::MemoryPropertyFlags properties);
+    vk::UniqueImage m_utextureImage;
+    vk::UniqueDeviceMemory m_utextureMem;
+    vk::UniqueImageView m_utextureImageView;
+    vk::UniqueSampler m_utextureSampler;
+
     vk::UniqueBuffer m_vertexBuffer;
     vk::UniqueDeviceMemory m_vertexBufferMemory;
     vk::UniqueBuffer m_indexBuffer;
     vk::UniqueDeviceMemory m_indexBufferMemory;
+
+    std::vector<vk::UniqueBuffer> m_uniformBuffers;
+    std::vector<vk::UniqueDeviceMemory> m_uniformBuffersMemory;
+
+    vk::UniqueDescriptorPool m_descriptorPool;
+    std::vector<vk::UniqueDescriptorSet> m_descriptorSets;
 
     std::vector<vk::UniqueCommandBuffer> m_commandBuffers;
 
@@ -104,17 +121,17 @@ private:
     size_t m_currentFrame = 0;
     bool framebufferResized = false;
 
-    int initWindow();
+    void initWindow();
 
     std::vector<const char*> getRequiredExtension();
-    int createInstance();
-    int setupDebugMessage();
+    void createInstance();
+    void setupDebugMessage();
     static VkBool32 debugCallback(VkDebugReportFlagsEXT flags,
                                   VkDebugReportObjectTypeEXT objectType,
                                   uint64_t object, size_t location,
                                   int32_t messageCode, const char* pLayerPrefix,
                                   const char* pMessage, void* pUserData);
-    int createSurface();
+    void createSurface();
 
     struct QueueFamilyIndices {
         uint32_t graphicsFamily = -1;
@@ -126,12 +143,12 @@ private:
                    presentFamily >= 0;
         }
     };
-    int pickPhysicalDevice();
+    void pickPhysicalDevice();
     bool isDeviceSuitable(vk::PhysicalDevice device);
     bool checkDeviceExtensionSupport(vk::PhysicalDevice device);
     QueueFamilyIndices findQueueFamilies(vk::PhysicalDevice device);
 
-    int createLogicalDevice();
+    void createLogicalDevice();
 
     static const std::vector<const char *> deviceExtensions;
     struct SwapChainSupportDetails {
@@ -139,7 +156,7 @@ private:
         std::vector<vk::SurfaceFormatKHR> formats;
         std::vector<vk::PresentModeKHR> presentModes;
     };
-    int createSwapChain();
+    void createSwapChain();
     SwapChainSupportDetails querySwapChainSupport(vk::PhysicalDevice device);
     vk::SurfaceFormatKHR chooseSwapSurfaceFormat(
             const std::vector<vk::SurfaceFormatKHR>& availableFormats);
@@ -147,23 +164,39 @@ private:
             const std::vector<vk::PresentModeKHR>& availablePresentModes);
     vk::Extent2D chooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
 
-    int createImageViews();
+    void createImageViews();
 
-    int createRenderPass();
+    void createRenderPass();
 
-    int createDescriptorSetLayout();
+    void createDescriptorSetLayout();
 
-    int createGraphicsPipeline();
+    void createGraphicsPipeline();
     static std::vector<char> readFile(const std::string& filename);
     vk::UniqueShaderModule createShaderModule(const std::vector<char>& code);
 
-    int createFramebuffers();
+    void createFramebuffers();
 
-    int createCommandPool();
-    int createVertexBuffer();
-    int createIndexBuffer();
-    int createCommandBuffers();
-    int createSyncObjects();
+    void createCommandPool();
+
+    void transitionImageLayout(vk::Image image, vk::ImageLayout oldLayout,
+                               vk::ImageLayout newLayout,
+                               vk::PipelineStageFlags srcStageMask,
+                               vk::PipelineStageFlags dstStageMask);
+    void createTextureImage();
+    void createTextureImageView();
+    void createTextureSampler();
+
+    uint32_t findMemoryType(uint32_t typeFilter,
+                            vk::MemoryPropertyFlags properties);
+
+    void createVertexBuffer();
+    void createIndexBuffer();
+    void createUniformBuffers();
+    void updateUniformBuffer(uint32_t currentImage);
+    void createDescriptorPool();
+    void createDescriptorSets();
+    void createCommandBuffers();
+    void createSyncObjects();
 
     static void framebufferResizeCallback(GLFWwindow* window,
                                           int width, int height);

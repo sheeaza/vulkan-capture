@@ -1,17 +1,19 @@
 find_package(PkgConfig REQUIRED)
 pkg_search_module(GLFW REQUIRED glfw3)
-include_directories(${GLFW_INCLUDE_DIRS})
 
 find_package (Threads)
-
 find_package(Vulkan REQUIRED)
+find_package(OpenCV REQUIRED)
 
 aux_source_directory(. SOURCE_FILES)
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
 
+include_directories(${GLFW_INCLUDE_DIRS}
+                    ${OpenCV_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} ${Vulkan_LIBRARIES}
                                       ${GLFW_STATIC_LIBRARIES}
-                                      ${CMAKE_THREAD_LIBS_INIT})
+                                      ${CMAKE_THREAD_LIBS_INIT}
+                                      ${OpenCV_LIBS})
 
 install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 
@@ -31,4 +33,6 @@ set_source_files_properties(${shader-out-dir}/${shader}.spv PROPERTIES GENERATED
 target_sources(${PROJECT_NAME} PRIVATE ${shader-out-dir}/${shader}.spv)
 install(FILES ${shader-out-dir}/${shader}.spv DESTINATION bin)
 endforeach(shader-path)
+
+install(FILES ${CMAKE_SOURCE_DIR}/resource/src_1.jpg DESTINATION bin)
 
