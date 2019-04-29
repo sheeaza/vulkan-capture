@@ -55,6 +55,8 @@ public:
     };
 
     void init();
+    void updateTexture(int index);
+    void getBufferAddrs(std::vector<void *> &bufferMaps);
     void render();
     bool checkValidationLayerSupport();
     bool shouldStop()
@@ -101,6 +103,9 @@ private:
     vk::UniqueDeviceMemory m_utextureMem;
     vk::UniqueImageView m_utextureImageView;
     vk::UniqueSampler m_utextureSampler;
+    std::vector<vk::UniqueBuffer> m_ustageBuffers;
+    std::vector<vk::UniqueDeviceMemory> m_ustageMems;
+    std::vector<void *> m_stageMemMaps;
 
     vk::UniqueBuffer m_vertexBuffer;
     vk::UniqueDeviceMemory m_vertexBufferMemory;
