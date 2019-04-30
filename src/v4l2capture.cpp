@@ -136,11 +136,15 @@ void V4l2Capture::stop()
 int V4l2Capture::readFrame()
 {
     struct v4l2_buffer buf = {};
+    struct v4l2_plane plane = {};
+
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     buf.memory = V4L2_MEMORY_USERPTR;
+    buf.length = 1;
+    buf.m.planes = &plane;
 
     if (ioctl(m_fd, VIDIOC_DQBUF, &buf)) {
-        std::cout << "no buffer " << errno << std::endl;
+        // std::cout << "no buffer " << errno << std::endl;
         return -1;
     }
 

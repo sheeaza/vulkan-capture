@@ -48,26 +48,27 @@ int main()
         double currentTime;
 
         while (keepRunning) {
-            currentTime = glfwGetTime();
-            frameCount++;
-            if (currentTime - previousTime >= 1.0) {
-                std::cout << frameCount << std::endl;
-                frameCount = 0;
-                previousTime = currentTime;
-            }
-
             glfwPollEvents();
 
             int index = capture.readFrame();
-            std::this_thread::sleep_for(std::chrono::seconds(10));
-            exit(0);
 
             if (index == -1)
                 continue;
 
+            currentTime = glfwGetTime();
+            frameCount++;
+            double deltaT = currentTime - previousTime;
+            if (deltaT >= 1.0) {
+                std::cout << frameCount / deltaT << std::endl;
+                frameCount = 0;
+                previousTime = currentTime;
+            }
+
             render.updateTexture(index);
             render.render();
             capture.doneFrame(index);
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(30));
         }
     } catch (const std::exception& e) {
         std::cerr << e.what() << std::endl;
