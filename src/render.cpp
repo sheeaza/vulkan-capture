@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <array>
 #include <set>
 #include <iostream>
 #include <limits>
@@ -19,15 +20,28 @@
 #define HEIGHT 600
 static const int MAX_FRAMES_IN_FLIGHT = 2;
 
-const std::vector<Render::Vertex> vertices = {
-    {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
-};
-
-const std::vector<uint16_t> indices = {
-    0, 1, 2, 2, 3, 0
+const std::vector<std::vector<Render::Vertex>>  vertices = {
+    {
+        {{-1.0f, -1.0f}, {1.0f, 0.0f}},
+        {{0.0f, -1.0f}, {0.0f, 0.0f}},
+        {{-1.0f, 0.0f},  {1.0f, 1.0f}},
+        {{0.0f, 0.0f}, {0.0f, 1.0f}}
+    }, {
+        {{0.0f, -1.0f}, {1.0f, 0.0f}},
+        {{1.0f, -1.0f}, {0.0f, 0.0f}},
+        {{0.0f, 0.0f},  {1.0f, 1.0f}},
+        {{1.0f, 0.0f}, {0.0f, 1.0f}}
+    }, {
+        {{-1.0f, 0.0f}, {1.0f, 0.0f}},
+        {{0.0f, 0.0f}, {0.0f, 0.0f}},
+        {{-1.0f, 1.0f},  {1.0f, 1.0f}},
+        {{0.0f, 1.0f}, {0.0f, 1.0f}}
+    }, {
+        {{0.0f, 0.0f}, {1.0f, 0.0f}},
+        {{1.0f, 0.0f}, {0.0f, 0.0f}},
+        {{0.0f, 1.0f},  {1.0f, 1.0f}},
+        {{1.0f, 1.0f}, {0.0f, 1.0f}}
+    }
 };
 
 const std::vector<const char*> Render::validationLayers = {
@@ -144,7 +158,7 @@ void Render::init()
     createTextureImageView();
     createTextureSampler();
     createVertexBuffer();
-    createIndexBuffer();
+    // createIndexBuffer();
     createUniformBuffers();
     createDescriptorPool();
     createDescriptorSets();
@@ -213,6 +227,7 @@ void Render::render()
         throw std::runtime_error("failed to acquire swap chain image");
     }
 
+    // FIXME high cpu usage
     updateUniformBuffer(imageIndex);
 
     vk::PipelineStageFlags waitStages[] =
@@ -705,7 +720,7 @@ void Render::createGraphicsPipeline()
                         attributeDescriptions.data());
 
     vk::PipelineInputAssemblyStateCreateInfo inputAssembly(
-            {}, vk::PrimitiveTopology::eTriangleList);
+            {}, vk::PrimitiveTopology::eTriangleStrip);
 
     vk::Viewport viewport(0.0f, 0.0f, (float)m_swapChainExtent.width,
                           (float)m_swapChainExtent.height, 0.0f, 1.0f);
@@ -993,52 +1008,57 @@ void Render::createTextureSampler()
 
 void Render::createVertexBuffer()
 {
-    uint32_t bufferSize = sizeof(vertices[0]) * vertices.size();
+    // for (auto &vertex : vertices) {
+	auto &vertex = vertices.at(0);
 
-    m_vertexBuffer = m_device->createBufferUnique(
-            vk::BufferCreateInfo({}, bufferSize,
-                                 vk::BufferUsageFlagBits::eVertexBuffer));
-    vk::MemoryRequirements memRequirements =
-        m_device->getBufferMemoryRequirements(*m_vertexBuffer);
+        uint32_t bufferSize = sizeof(vertex[0]) * vertex.size();
 
-    uint32_t memoryTypeIndex =
-        findMemoryType(memRequirements.memoryTypeBits,
-                       vk::MemoryPropertyFlagBits::eHostVisible |
-                       vk::MemoryPropertyFlagBits::eHostCoherent);
-    m_vertexBufferMemory = m_device->allocateMemoryUnique(
-            vk::MemoryAllocateInfo(memRequirements.size, memoryTypeIndex));
+        m_vertexBuffer = m_device->createBufferUnique(
+                vk::BufferCreateInfo({}, bufferSize,
+                    vk::BufferUsageFlagBits::eVertexBuffer));
+        vk::MemoryRequirements memRequirements =
+            m_device->getBufferMemoryRequirements(*m_vertexBuffer);
 
-    void *data = m_device->mapMemory(*m_vertexBufferMemory, 0,
-                                     memRequirements.size);
-    memcpy(data, vertices.data(), bufferSize);
-    m_device->unmapMemory(*m_vertexBufferMemory);
+        uint32_t memoryTypeIndex =
+            findMemoryType(memRequirements.memoryTypeBits,
+                    vk::MemoryPropertyFlagBits::eHostVisible |
+                    vk::MemoryPropertyFlagBits::eHostCoherent);
+        m_vertexBufferMemory = m_device->allocateMemoryUnique(
+                vk::MemoryAllocateInfo(memRequirements.size, memoryTypeIndex));
 
-    m_device->bindBufferMemory(*m_vertexBuffer, *m_vertexBufferMemory, 0);
+        void *data = m_device->mapMemory(*m_vertexBufferMemory, 0,
+                memRequirements.size);
+        memcpy(data, vertex.data(), bufferSize);
+        m_device->unmapMemory(*m_vertexBufferMemory);
+
+        m_device->bindBufferMemory(*m_vertexBuffer, *m_vertexBufferMemory, 0);
+    // }
+
 }
 
 void Render::createIndexBuffer()
 {
-    uint32_t bufferSize = sizeof(indices[0]) * indices.size();
+    // uint32_t bufferSize = sizeof(indices[0]) * indices.size();
 
-    m_indexBuffer = m_device->createBufferUnique(
-            vk::BufferCreateInfo({}, bufferSize,
-                                 vk::BufferUsageFlagBits::eIndexBuffer));
-    vk::MemoryRequirements memRequirements =
-        m_device->getBufferMemoryRequirements(*m_indexBuffer);
+    // m_indexBuffer = m_device->createBufferUnique(
+            // vk::BufferCreateInfo({}, bufferSize,
+                                 // vk::BufferUsageFlagBits::eIndexBuffer));
+    // vk::MemoryRequirements memRequirements =
+        // m_device->getBufferMemoryRequirements(*m_indexBuffer);
 
-    uint32_t memoryTypeIndex =
-        findMemoryType(memRequirements.memoryTypeBits,
-                       vk::MemoryPropertyFlagBits::eHostVisible |
-                       vk::MemoryPropertyFlagBits::eHostCoherent);
-    m_indexBufferMemory = m_device->allocateMemoryUnique(
-            vk::MemoryAllocateInfo(memRequirements.size, memoryTypeIndex));
+    // uint32_t memoryTypeIndex =
+        // findMemoryType(memRequirements.memoryTypeBits,
+                       // vk::MemoryPropertyFlagBits::eHostVisible |
+                       // vk::MemoryPropertyFlagBits::eHostCoherent);
+    // m_indexBufferMemory = m_device->allocateMemoryUnique(
+            // vk::MemoryAllocateInfo(memRequirements.size, memoryTypeIndex));
 
-    void *data = m_device->mapMemory(*m_indexBufferMemory, 0,
-                                     memRequirements.size);
-    memcpy(data, indices.data(), bufferSize);
-    m_device->unmapMemory(*m_indexBufferMemory);
+    // void *data = m_device->mapMemory(*m_indexBufferMemory, 0,
+                                     // memRequirements.size);
+    // memcpy(data, indices.data(), bufferSize);
+    // m_device->unmapMemory(*m_indexBufferMemory);
 
-    m_device->bindBufferMemory(*m_indexBuffer, *m_indexBufferMemory, 0);
+    // m_device->bindBufferMemory(*m_indexBuffer, *m_indexBufferMemory, 0);
 }
 
 uint32_t Render::findMemoryType(uint32_t typeFilter,
@@ -1104,6 +1124,10 @@ void Render::updateUniformBuffer(uint32_t currentImage)
                                     (float)m_swapChainExtent.height,
                                 0.001f, 256.0f);
     ubo.proj[1][1] *= -1;
+
+    ubo.model = glm::mat4(1.0f);
+    ubo.view = glm::mat4(1.0f);
+    ubo.proj = glm::mat4(1.0f);
 
     void *data = m_device->mapMemory(*m_uniformBuffersMemory.at(currentImage),
                                      0, sizeof(ubo));
@@ -1183,15 +1207,15 @@ void Render::createCommandBuffers()
                                              *m_graphicsPipeline);
         vk::DeviceSize offset = 0;
         m_commandBuffers.at(i)->bindVertexBuffers(0, *m_vertexBuffer, offset);
-        m_commandBuffers.at(i)->bindIndexBuffer(*m_indexBuffer, 0,
-                                                vk::IndexType::eUint16);
+        // m_commandBuffers.at(i)->bindIndexBuffer(*m_indexBuffer, 0,
+                                                // vk::IndexType::eUint16);
 
         m_commandBuffers.at(i)->bindDescriptorSets(
                 vk::PipelineBindPoint::eGraphics, *m_pipelineLayout, 0, 1,
                 &*m_descriptorSets.at(i), 0, nullptr);
 
-        m_commandBuffers.at(i)->drawIndexed(static_cast<uint32_t>(indices.size()),
-                                            1, 0, 0, 0);
+        m_commandBuffers.at(i)->draw(static_cast<uint32_t>(vertices[0].size()),
+                                            1, 0, 0);
         m_commandBuffers.at(i)->endRenderPass();
         m_commandBuffers.at(i)->end();
     }

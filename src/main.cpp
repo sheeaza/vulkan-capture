@@ -68,7 +68,7 @@ int main()
             render.render();
             capture.doneFrame(index);
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(30));
+            // std::this_thread::sleep_for(std::chrono::milliseconds(30));
         }
     } catch (const std::exception& e) {
         std::cerr << e.what() << std::endl;
