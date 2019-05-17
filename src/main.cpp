@@ -15,10 +15,10 @@ static volatile bool keepRunning = true;
 
 int main()
 {
-    // V4l2Capture capture;
+    // V4l2Capture captures;
     // std::vector<V4l2Capture::Buffer> buffers(4);
     // try {
-        // capture.open("/dev/video1", V4l2Capture::ImgFormat(1280, 720, V4l2Capture::PixFormat::XBGR32),
+        // captures.open("/dev/video1", V4l2Capture::ImgFormat(1280, 720, V4l2Capture::PixFormat::XBGR32),
                      // buffers);
     // } catch (const std::exception& e) {
         // std::cerr << e.what() << std::endl;
@@ -26,48 +26,61 @@ int main()
     // }
     // return 0;
 
+    int cameraNum = 4;
     Render render;
     signal(SIGINT, [](int){ keepRunning = false; });
-    V4l2Capture capture;
-    std::vector<V4l2Capture::Buffer> buffers(4);
-    std::vector<void *> renderBufs;
+    std::vector<V4l2Capture> captures(1);
+    std::vector<std::array<V4l2Capture::Buffer, 4>> buffers(4);
+    std::vector<std::array<void *, 4>> renderBufs(4);
 
     try {
         render.init();
-        render.getBufferAddrs(renderBufs);
-        for (int i = 0; i < renderBufs.size(); i++) {
-            buffers.at(i).start = renderBufs.at(i);
-            buffers.at(i).length = 1280 * 800 * 4;
+        for (size_t i = 0; i < captures.size(); i++) {
+            render.getBufferAddrs(i, renderBufs[i]);
+            for (size_t j = 0; j < renderBufs[i].size(); j++) {
+                buffers[i][j].start = renderBufs[i][j];
+                buffers[i][j].length = 1280 * 800 * 4;
+            }
+            captures[i].open("/dev/video" + std::to_string(i),
+                             V4l2Capture::ImgFormat(
+                                 1280, 800, V4l2Capture::PixFormat::XBGR32),
+                             buffers[i]);
+            captures[i].start();
         }
-        capture.open("/dev/video0", V4l2Capture::ImgFormat(1280, 800, V4l2Capture::PixFormat::XBGR32),
-                     buffers);
-        capture.start();
 
         int frameCount = 0;
         double previousTime = glfwGetTime();
         double currentTime;
+        int fCount = 0;
 
         while (keepRunning) {
             glfwPollEvents();
 
-            int index = capture.readFrame();
+            for (size_t i = 0; i < captures.size(); i++) {
 
-            if (index == -1)
-                continue;
+                int index = captures[i].readFrame();
 
-            currentTime = glfwGetTime();
-            frameCount++;
-            double deltaT = currentTime - previousTime;
-            if (deltaT >= 1.0) {
-                std::cout << frameCount / deltaT << std::endl;
-                frameCount = 0;
-                previousTime = currentTime;
+                if (index == -1)
+                    continue;
+
+                fCount++;
+
+                render.updateTexture(i, index);
+                render.render(i);
+                captures[i].doneFrame(index);
             }
 
-            render.updateTexture(index);
-            render.render();
-            capture.doneFrame(index);
-
+            if (fCount != 0) {
+                currentTime = glfwGetTime();
+                frameCount++;
+                double deltaT = currentTime - previousTime;
+                if (deltaT >= 1.0) {
+                    std::cout << frameCount / deltaT << std::endl;
+                    frameCount = 0;
+                    previousTime = currentTime;
+                }
+                fCount = 0;
+            }
             // std::this_thread::sleep_for(std::chrono::milliseconds(30));
         }
     } catch (const std::exception& e) {

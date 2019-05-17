@@ -49,9 +49,9 @@ public:
     };
 
     void init();
-    void updateTexture(int index);
-    void getBufferAddrs(std::vector<void *> &bufferMaps);
-    void render();
+    void updateTexture(int index, int subIndex);
+    void getBufferAddrs(int index, std::array<void *, 4> &bufferMaps);
+    void render(int index);
     bool checkValidationLayerSupport();
     bool shouldStop()
     {
@@ -66,6 +66,7 @@ public:
         m_device->waitIdle();
     }
 
+    Render();
     virtual ~Render();
 
 private:
@@ -97,12 +98,12 @@ private:
     vk::UniqueDeviceMemory m_utextureMem;
     vk::UniqueImageView m_utextureImageView;
     vk::UniqueSampler m_utextureSampler;
-    std::vector<vk::UniqueBuffer> m_ustageBuffers;
-    std::vector<vk::UniqueDeviceMemory> m_ustageMems;
-    std::vector<void *> m_stageMemMaps;
+    std::vector<std::array<vk::UniqueBuffer, 4>> m_ustageBuffers;
+    std::vector<std::array<vk::UniqueDeviceMemory, 4>> m_ustageMems;
+    std::vector<std::array<void *, 4>> m_stageMemMaps;
 
-    vk::UniqueBuffer m_vertexBuffer;
-    vk::UniqueDeviceMemory m_vertexBufferMemory;
+    std::vector<vk::UniqueBuffer> m_uVertexBuffers;
+    std::vector<vk::UniqueDeviceMemory> m_uVertexBufferMems;
     vk::UniqueBuffer m_indexBuffer;
     vk::UniqueDeviceMemory m_indexBufferMemory;
 
@@ -194,12 +195,12 @@ private:
     void updateUniformBuffer(uint32_t currentImage);
     void createDescriptorPool();
     void createDescriptorSets();
-    void createCommandBuffers();
+    void createCommandBuffers(int index);
     void createSyncObjects();
 
     static void framebufferResizeCallback(GLFWwindow* window,
                                           int width, int height);
     void cleanupSwapChain();
-    void recreateSwapChain();
+    void recreateSwapChain(int index);
 };
 

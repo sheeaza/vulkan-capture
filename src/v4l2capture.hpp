@@ -3,6 +3,7 @@
 #include <linux/videodev2.h>
 #include <string>
 #include <vector>
+#include <array>
 
 class V4l2Capture
 {
@@ -50,7 +51,7 @@ public:
     virtual ~V4l2Capture();
 
     void open(const std::string &path, const ImgFormat &imgFormat,
-              const std::vector<Buffer> &buffers);
+              const std::array<Buffer, 4> &buffers);
     void start();
     void stop();
     int readFrame();
@@ -63,7 +64,7 @@ private:
     int m_frameSize;
     uint32_t m_pixFmt;
     int m_bufferNum;
-    std::vector<Buffer> m_buffers;
+    std::array<Buffer, 4> m_buffers;
 
     void enumFormat();
 };

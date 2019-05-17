@@ -80,10 +80,16 @@ VkResult vkCreateDebugReportCallbackEXT(
             );
 }
 
+Render::Render()
+{
+}
+
 Render::~Render()
 {
     for (auto &stageMem : m_ustageMems) {
-        m_device->unmapMemory(*stageMem);
+        for (auto &subStageMem : stageMem) {
+            m_device->unmapMemory(*subStageMem);
+        }
     }
     // m_device->waitIdle();
 
@@ -93,8 +99,8 @@ Render::~Render()
     // m_device->destroyBuffer(*m_indexBuffer);
     // m_device->freeMemory(*m_indexBufferMemory);
 
-    // m_device->destroyBuffer(*m_vertexBuffer);
-    // m_device->freeMemory(*m_vertexBufferMemory);
+    // m_device->destroyBuffer(*m_uVertexBuffers);
+    // m_device->freeMemory(*m_uVertexBufferMems);
 
     // std::cout << "size " << m_inFlightFences.size() << std::endl;
 
@@ -162,11 +168,11 @@ void Render::init()
     createUniformBuffers();
     createDescriptorPool();
     createDescriptorSets();
-    createCommandBuffers();
+    createCommandBuffers(0);
     createSyncObjects();
 }
 
-void Render::updateTexture(int index)
+void Render::updateTexture(int index, int subIndex)
 {
     int imageWidth = 1280;
     int imageHeight = 800;
@@ -188,7 +194,7 @@ void Render::updateTexture(int index)
     ucmdBuffers[0]->begin(
             vk::CommandBufferBeginInfo(
                 vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    ucmdBuffers[0]->copyBufferToImage(*m_ustageBuffers.at(index), *m_utextureImage,
+    ucmdBuffers[0]->copyBufferToImage(*m_ustageBuffers[index][subIndex], *m_utextureImage,
                                          vk::ImageLayout::eTransferDstOptimal,
                                          copyRegion);
     ucmdBuffers[0]->end();
@@ -202,12 +208,12 @@ void Render::updateTexture(int index)
 
 }
 
-void Render::getBufferAddrs(std::vector<void *> &bufferMaps)
+void Render::getBufferAddrs(int index, std::array<void *, 4> &bufferMaps)
 {
-    bufferMaps = m_stageMemMaps;
+    bufferMaps = m_stageMemMaps[index];
 }
 
-void Render::render()
+void Render::render(int index)
 {
     m_device->waitForFences(1, &*m_inFlightFences.at(m_currentFrame),
                             VK_TRUE, std::numeric_limits<uint64_t>::max());
@@ -220,15 +226,24 @@ void Render::render()
                                       nullptr, &imageIndex);
 
     if (result == vk::Result::eErrorOutOfDateKHR) {
-        recreateSwapChain();
+        recreateSwapChain(index);
+        std::cout << "recreating" << std::endl;
         return;
     } else if (result != vk::Result::eSuccess &&
                result != vk::Result::eSuboptimalKHR) {
         throw std::runtime_error("failed to acquire swap chain image");
     }
 
-    // FIXME high cpu usage
     updateUniformBuffer(imageIndex);
+    // for (const auto &cmdBuffer : m_commandBuffers) {
+        // cmdBuffer->begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
+        // cmdBuffer->bindPipeline(vk::PipelineBindPoint::eGraphics,*m_graphicsPipeline);
+        // vk::DeviceSize offset = 0;
+        // cmdBuffer->bindVertexBuffers(0, *m_uVertexBuffers[index], offset);
+        // cmdBuffer->draw(static_cast<uint32_t>(vertices[0].size()), 1, 0, 0);
+        // cmdBuffer->end();
+    // }
+    // recreateSwapChain(index);
 
     vk::PipelineStageFlags waitStages[] =
         {vk::PipelineStageFlagBits::eColorAttachmentOutput};
@@ -253,7 +268,8 @@ void Render::render()
         result == vk::Result::eSuboptimalKHR ||
         framebufferResized) {
         framebufferResized = false;
-        recreateSwapChain();
+        recreateSwapChain(index);
+        std::cout << "recreating" << std::endl;
     } else if (result != vk::Result::eSuccess) {
         throw std::runtime_error("failed to present swap chain image!");
     }
@@ -910,28 +926,34 @@ void Render::createTextureImage()
     // memcpy(data, image.data, stageMemReq.size);
     // m_device->unmapMemory(*stageMem);
 
-    for (int i = 0; i < 4; i++) {
-        vk::UniqueBuffer stageBuffer;
-        vk::UniqueDeviceMemory stageMem;
-        vk::MemoryRequirements stageMemReq;
+    m_ustageBuffers.resize(4);
+    m_ustageMems.resize(4);
+    m_stageMemMaps.resize(4);
 
-        stageBuffer = m_device->createBufferUnique(
-                vk::BufferCreateInfo({}, imageWidth * imageHeight * 4,
-                    vk::BufferUsageFlagBits::eTransferSrc));
-        stageMemReq = m_device->getBufferMemoryRequirements(*stageBuffer);
-        uint32_t stageMemTypeIndex =
-            findMemoryType(stageMemReq.memoryTypeBits,
-                    vk::MemoryPropertyFlagBits::eHostVisible |
-                    vk::MemoryPropertyFlagBits::eHostCoherent);
-        stageMem = m_device->allocateMemoryUnique(
-                vk::MemoryAllocateInfo(stageMemReq.size, stageMemTypeIndex));
-        m_device->bindBufferMemory(*stageBuffer, *stageMem, 0);
+    for (size_t i = 0; i < m_ustageBuffers.size(); i++) {
+        for (size_t j = 0; j < m_ustageBuffers[i].size(); j++) {
+            vk::UniqueBuffer stageBuffer;
+            vk::UniqueDeviceMemory stageMem;
+            vk::MemoryRequirements stageMemReq;
 
-        void *data = m_device->mapMemory(*stageMem, 0, stageMemReq.size);
+            stageBuffer = m_device->createBufferUnique(
+                    vk::BufferCreateInfo({}, imageWidth * imageHeight * 4,
+                        vk::BufferUsageFlagBits::eTransferSrc));
+            stageMemReq = m_device->getBufferMemoryRequirements(*stageBuffer);
+            uint32_t stageMemTypeIndex =
+                findMemoryType(stageMemReq.memoryTypeBits,
+                        vk::MemoryPropertyFlagBits::eHostVisible |
+                        vk::MemoryPropertyFlagBits::eHostCoherent);
+            stageMem = m_device->allocateMemoryUnique(
+                    vk::MemoryAllocateInfo(stageMemReq.size, stageMemTypeIndex));
+            m_device->bindBufferMemory(*stageBuffer, *stageMem, 0);
 
-        m_ustageBuffers.push_back(std::move(stageBuffer));
-        m_ustageMems.push_back(std::move(stageMem));
-        m_stageMemMaps.push_back(data);
+            void *data = m_device->mapMemory(*stageMem, 0, stageMemReq.size);
+
+            m_ustageBuffers[i][j] = std::move(stageBuffer);
+            m_ustageMems[i][j] = std::move(stageMem);
+            m_stageMemMaps[i][j] = data;
+        }
     }
 
     m_utextureImage = m_device->createImageUnique(
@@ -1008,31 +1030,34 @@ void Render::createTextureSampler()
 
 void Render::createVertexBuffer()
 {
-    // for (auto &vertex : vertices) {
-	auto &vertex = vertices.at(0);
+    m_uVertexBuffers.resize(4);
+    m_uVertexBufferMems.resize(4);
+
+    for (size_t i = 0; i < m_uVertexBuffers.size(); i++) {
+        auto &vertex = vertices[i];
 
         uint32_t bufferSize = sizeof(vertex[0]) * vertex.size();
 
-        m_vertexBuffer = m_device->createBufferUnique(
+        m_uVertexBuffers[i] = m_device->createBufferUnique(
                 vk::BufferCreateInfo({}, bufferSize,
                     vk::BufferUsageFlagBits::eVertexBuffer));
         vk::MemoryRequirements memRequirements =
-            m_device->getBufferMemoryRequirements(*m_vertexBuffer);
+            m_device->getBufferMemoryRequirements(*m_uVertexBuffers[i]);
 
         uint32_t memoryTypeIndex =
             findMemoryType(memRequirements.memoryTypeBits,
                     vk::MemoryPropertyFlagBits::eHostVisible |
                     vk::MemoryPropertyFlagBits::eHostCoherent);
-        m_vertexBufferMemory = m_device->allocateMemoryUnique(
+        m_uVertexBufferMems[i] = m_device->allocateMemoryUnique(
                 vk::MemoryAllocateInfo(memRequirements.size, memoryTypeIndex));
 
-        void *data = m_device->mapMemory(*m_vertexBufferMemory, 0,
+        void *data = m_device->mapMemory(*m_uVertexBufferMems[i], 0,
                 memRequirements.size);
         memcpy(data, vertex.data(), bufferSize);
-        m_device->unmapMemory(*m_vertexBufferMemory);
+        m_device->unmapMemory(*m_uVertexBufferMems[i]);
 
-        m_device->bindBufferMemory(*m_vertexBuffer, *m_vertexBufferMemory, 0);
-    // }
+        m_device->bindBufferMemory(*m_uVertexBuffers[i], *m_uVertexBufferMems[i], 0);
+    }
 
 }
 
@@ -1181,7 +1206,7 @@ void Render::createDescriptorSets()
     }
 }
 
-void Render::createCommandBuffers()
+void Render::createCommandBuffers(int index)
 {
     m_commandBuffers = m_device->allocateCommandBuffersUnique(
             vk::CommandBufferAllocateInfo(*m_commandPool,
@@ -1206,7 +1231,7 @@ void Render::createCommandBuffers()
         m_commandBuffers.at(i)->bindPipeline(vk::PipelineBindPoint::eGraphics,
                                              *m_graphicsPipeline);
         vk::DeviceSize offset = 0;
-        m_commandBuffers.at(i)->bindVertexBuffers(0, *m_vertexBuffer, offset);
+        m_commandBuffers.at(i)->bindVertexBuffers(0, *m_uVertexBuffers[index], offset);
         // m_commandBuffers.at(i)->bindIndexBuffer(*m_indexBuffer, 0,
                                                 // vk::IndexType::eUint16);
 
@@ -1271,7 +1296,7 @@ void Render::cleanupSwapChain()
     m_descriptorPool.reset();
 }
 
-void Render::recreateSwapChain()
+void Render::recreateSwapChain(int index)
 {
     int width = 0, height = 0;
     while (width == 0 || height == 0) {
@@ -1291,6 +1316,6 @@ void Render::recreateSwapChain()
     createUniformBuffers();
     createDescriptorPool();
     createDescriptorSets();
-    createCommandBuffers();
+    createCommandBuffers(index);
 }
 

@@ -20,7 +20,7 @@ V4l2Capture::~V4l2Capture()
 }
 
 void V4l2Capture::open(const std::string &path, const ImgFormat &imgFormat,
-                       const std::vector<Buffer> &buffers)
+                       const std::array<Buffer, 4> &buffers)
 {
     int ret;
 
@@ -36,6 +36,7 @@ void V4l2Capture::open(const std::string &path, const ImgFormat &imgFormat,
     m_bufferNum = buffers.size();
 
     m_fd = ::open(path.c_str(), O_RDWR | O_NONBLOCK);
+    // m_fd = ::open(path.c_str(), O_RDWR);
     if (m_fd == -1) {
         throw std::runtime_error("failed to open: " + path);
     }
