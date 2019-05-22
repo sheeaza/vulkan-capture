@@ -53,7 +53,7 @@ int main()
         double currentTime;
         int fCount = 0;
 
-        int index[4];
+        int index[4] = {0, 0, 0, 0};
 
         while (keepRunning) {
             glfwPollEvents();
@@ -62,8 +62,9 @@ int main()
 
                 index[i] = captures[i].readFrame();
 
-                if (index[i] == -1)
+                if (index[i] == -1) {
                     continue;
+                }
 
                 fCount++;
 
@@ -74,6 +75,9 @@ int main()
             }
             render.render(0);
             for (size_t i = 0; i < captures.size(); i++) {
+                if (index[i] == -1)
+                    continue;
+
                 captures[i].doneFrame(index[i]);
             }
 
