@@ -35,8 +35,8 @@ void V4l2Capture::open(const std::string &path, const ImgFormat &imgFormat,
     m_pixFmt = static_cast<uint32_t>(imgFormat.m_pixFmt);
     m_bufferNum = buffers.size();
 
-    m_fd = ::open(path.c_str(), O_RDWR | O_NONBLOCK);
-    // m_fd = ::open(path.c_str(), O_RDWR);
+    // m_fd = ::open(path.c_str(), O_RDWR | O_NONBLOCK);
+    m_fd = ::open(path.c_str(), O_RDWR);
     if (m_fd == -1) {
         throw std::runtime_error("failed to open: " + path);
     }

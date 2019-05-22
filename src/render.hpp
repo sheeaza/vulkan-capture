@@ -94,9 +94,9 @@ private:
 
     vk::UniqueCommandPool m_commandPool;
 
-    vk::UniqueImage m_utextureImage;
-    vk::UniqueDeviceMemory m_utextureMem;
-    vk::UniqueImageView m_utextureImageView;
+    vk::UniqueImage m_utextureImage[4];
+    vk::UniqueDeviceMemory m_utextureMem[4];
+    vk::UniqueImageView m_utextureImageView[4];
     vk::UniqueSampler m_utextureSampler;
     std::vector<std::array<vk::UniqueBuffer, 4>> m_ustageBuffers;
     std::vector<std::array<vk::UniqueDeviceMemory, 4>> m_ustageMems;
@@ -111,7 +111,7 @@ private:
     std::vector<vk::UniqueDeviceMemory> m_uniformBuffersMemory;
 
     vk::UniqueDescriptorPool m_descriptorPool;
-    std::vector<vk::UniqueDescriptorSet> m_descriptorSets;
+    std::vector<vk::UniqueDescriptorSet> m_descriptorSets[4];
 
     std::vector<vk::UniqueCommandBuffer> m_commandBuffers;
 

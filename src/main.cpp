@@ -29,7 +29,7 @@ int main()
     int cameraNum = 4;
     Render render;
     signal(SIGINT, [](int){ keepRunning = false; });
-    std::vector<V4l2Capture> captures(1);
+    std::vector<V4l2Capture> captures(4);
     std::vector<std::array<V4l2Capture::Buffer, 4>> buffers(4);
     std::vector<std::array<void *, 4>> renderBufs(4);
 
@@ -53,21 +53,28 @@ int main()
         double currentTime;
         int fCount = 0;
 
+        int index[4];
+
         while (keepRunning) {
             glfwPollEvents();
 
             for (size_t i = 0; i < captures.size(); i++) {
 
-                int index = captures[i].readFrame();
+                index[i] = captures[i].readFrame();
 
-                if (index == -1)
+                if (index[i] == -1)
                     continue;
 
                 fCount++;
 
-                render.updateTexture(i, index);
-                render.render(i);
-                captures[i].doneFrame(index);
+                render.updateTexture(i, index[i]);
+                // render.updateTexture(i, index);
+                // render.updateTexture(i, index);
+                // render.updateTexture(i, index);
+            }
+            render.render(0);
+            for (size_t i = 0; i < captures.size(); i++) {
+                captures[i].doneFrame(index[i]);
             }
 
             if (fCount != 0) {
