@@ -320,7 +320,7 @@ void Render::initWindow()
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    m_window = glfwCreateWindow(800, 600, "vulkan", nullptr, nullptr);
+    m_window = glfwCreateWindow(WIDTH, HEIGHT, "vulkan", nullptr, nullptr);
     glfwSetWindowUserPointer(m_window, this);
     glfwSetFramebufferSizeCallback(m_window, framebufferResizeCallback);
 }
@@ -552,6 +552,7 @@ void Render::createSwapChain()
     vk::PresentModeKHR presentMode =
         chooseSwapPresentMode(swapChainSupport.presentModes);
     vk::Extent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
+    std::cout << extent.width << " " << extent.height << std::endl;
 
     uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
     if (swapChainSupport.capabilities.maxImageCount > 0 &&
@@ -639,6 +640,7 @@ vk::Extent2D Render::chooseSwapExtent(const vk::SurfaceCapabilitiesKHR&
 {
     if (capabilities.currentExtent.width !=
             std::numeric_limits<uint32_t>::max()) {
+        return vk::Extent2D(WIDTH, HEIGHT);
         return capabilities.currentExtent;
     } else {
         int width, height;
