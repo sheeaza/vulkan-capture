@@ -177,14 +177,14 @@ void Render::updateTexture(int index, int subIndex)
     int imageWidth = 1280;
     int imageHeight = 800;
 
-    transitionImageLayout(*m_utextureImage[index], vk::ImageLayout::eUndefined,
+    transitionImageLayout(*m_utextureImage, vk::ImageLayout::eUndefined,
                           vk::ImageLayout::eTransferDstOptimal,
                           vk::PipelineStageFlagBits::eTopOfPipe,
                           vk::PipelineStageFlagBits::eTransfer);
     vk::BufferImageCopy copyRegion(0, 0, 0,
                                    vk::ImageSubresourceLayers(
                                        vk::ImageAspectFlagBits::eColor,
-                                       0, 0, 1), vk::Offset3D(0, 0, 0),
+                                       0, index, 1), vk::Offset3D(0, 0, 0),
                                    vk::Extent3D(imageWidth, imageHeight, 1));
     std::vector<vk::UniqueCommandBuffer> ucmdBuffers =
         m_device->allocateCommandBuffersUnique(
@@ -194,14 +194,14 @@ void Render::updateTexture(int index, int subIndex)
     ucmdBuffers[0]->begin(
             vk::CommandBufferBeginInfo(
                 vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    ucmdBuffers[0]->copyBufferToImage(*m_ustageBuffers[index][subIndex], *m_utextureImage[index],
+    ucmdBuffers[0]->copyBufferToImage(*m_ustageBuffers[index][subIndex], *m_utextureImage,
                                          vk::ImageLayout::eTransferDstOptimal,
                                          copyRegion);
     ucmdBuffers[0]->end();
     m_graphicsQueue.submit(vk::SubmitInfo(0, nullptr, nullptr, 1,
                                           &*ucmdBuffers[0]), {});
     m_graphicsQueue.waitIdle();
-    transitionImageLayout(*m_utextureImage[index], vk::ImageLayout::eTransferDstOptimal,
+    transitionImageLayout(*m_utextureImage, vk::ImageLayout::eTransferDstOptimal,
                           vk::ImageLayout::eShaderReadOnlyOptimal,
                           vk::PipelineStageFlagBits::eTransfer,
                           vk::PipelineStageFlagBits::eFragmentShader);
@@ -891,7 +891,7 @@ void Render::transitionImageLayout(vk::Image image, vk::ImageLayout oldLayout,
 
     vk::ImageSubresourceRange
         imageSubresourceRange(vk::ImageAspectFlagBits::eColor,
-                              0, 1, 0, 1);
+                              0, 1, 0, 4); //TODO layer count dyn
     vk::ImageMemoryBarrier imageMemoryBarrier(srcAccessMask, dstAccessMask,
                                               oldLayout, newLayout,
                                               VK_QUEUE_FAMILY_IGNORED,
@@ -965,26 +965,27 @@ void Render::createTextureImage()
             m_ustageMems[i][j] = std::move(stageMem);
             m_stageMemMaps[i][j] = data;
         }
-        m_utextureImage[i] = m_device->createImageUnique(
-                vk::ImageCreateInfo({}, vk::ImageType::e2D,
-                    vk::Format::eR8G8B8A8Unorm,
-                    vk::Extent3D(imageWidth, imageHeight, 1),
-                    1, 1, vk::SampleCountFlagBits::e1,
-                    vk::ImageTiling::eOptimal,
-                    vk::ImageUsageFlagBits::eSampled |
-                    vk::ImageUsageFlagBits::eTransferDst,
-                    vk::SharingMode::eExclusive,
-                    0, nullptr, vk::ImageLayout::eUndefined));
-        vk::MemoryRequirements memoryRequirements =
-            m_device->getImageMemoryRequirements(*m_utextureImage[i]);
-        uint32_t memoryTypeIndex =
-            findMemoryType(memoryRequirements.memoryTypeBits,
-                    vk::MemoryPropertyFlagBits::eDeviceLocal);
-        m_utextureMem[i] = m_device->allocateMemoryUnique(
-                vk::MemoryAllocateInfo(memoryRequirements.size, memoryTypeIndex));
-        m_device->bindImageMemory(*m_utextureImage[i], *m_utextureMem[i], 0);
     }
 
+    m_utextureImage = m_device->createImageUnique(
+            vk::ImageCreateInfo({}, vk::ImageType::e2D,
+                vk::Format::eR8G8B8A8Unorm,
+                vk::Extent3D(imageWidth, imageHeight, 1),
+                1, 4, vk::SampleCountFlagBits::e1, // TODO layout number dynamic
+                vk::ImageTiling::eOptimal,
+                vk::ImageUsageFlagBits::eSampled |
+                vk::ImageUsageFlagBits::eTransferDst,
+                vk::SharingMode::eExclusive,
+                0, nullptr, vk::ImageLayout::eUndefined));
+
+    vk::MemoryRequirements memoryRequirements =
+        m_device->getImageMemoryRequirements(*m_utextureImage);
+    uint32_t memoryTypeIndex =
+        findMemoryType(memoryRequirements.memoryTypeBits,
+                vk::MemoryPropertyFlagBits::eDeviceLocal);
+    m_utextureMem = m_device->allocateMemoryUnique(
+            vk::MemoryAllocateInfo(memoryRequirements.size, memoryTypeIndex));
+    m_device->bindImageMemory(*m_utextureImage, *m_utextureMem, 0);
 
     // transitionImageLayout(*m_utextureImage, vk::ImageLayout::eUndefined,
                           // vk::ImageLayout::eTransferDstOptimal,
@@ -1018,15 +1019,13 @@ void Render::createTextureImage()
 
 void Render::createTextureImageView()
 {
-    for (int i = 0; i < 4; i++) {
-        m_utextureImageView[i] = m_device->createImageViewUnique(
-                vk::ImageViewCreateInfo({}, *m_utextureImage[i],
-                    vk::ImageViewType::e2D,
-                    vk::Format::eR8G8B8A8Unorm, {},
-                    vk::ImageSubresourceRange(
-                        vk::ImageAspectFlagBits::eColor,
-                        0, 1, 0, 1)));
-    }
+    m_utextureImageView = m_device->createImageViewUnique(
+            vk::ImageViewCreateInfo({}, *m_utextureImage,
+                vk::ImageViewType::e2DArray,
+                vk::Format::eR8G8B8A8Unorm, {},
+                vk::ImageSubresourceRange(
+                    vk::ImageAspectFlagBits::eColor,
+                    0, 1, 0, 4)));
 }
 
 void Render::createTextureSampler()
@@ -1195,32 +1194,28 @@ void Render::createDescriptorSets()
     std::vector<vk::DescriptorSetLayout> layouts(m_swapChainImages.size(),
                                                  *m_descriptorSetLayout);
 
+    m_descriptorSets = m_device->allocateDescriptorSetsUnique(
+            vk::DescriptorSetAllocateInfo(
+                *m_descriptorPool,
+                static_cast<uint32_t>(m_swapChainImages.size()),
+                layouts.data()));
 
-    for (int j = 0; j < 4; j++) {
+    for (size_t i = 0; i < m_swapChainImages.size(); i++) {
+        vk::DescriptorBufferInfo bufferInfo(*m_uniformBuffers.at(i),
+                0, sizeof(UniformBufferObject));
 
-        m_descriptorSets[j] = m_device->allocateDescriptorSetsUnique(
-                vk::DescriptorSetAllocateInfo(
-                    *m_descriptorPool,
-                    static_cast<uint32_t>(m_swapChainImages.size()),
-                    layouts.data()));
+        vk::DescriptorImageInfo
+            imageInfo(*m_utextureSampler, *m_utextureImageView,
+                    vk::ImageLayout::eShaderReadOnlyOptimal);
 
-        for (size_t i = 0; i < m_swapChainImages.size(); i++) {
-            vk::DescriptorBufferInfo bufferInfo(*m_uniformBuffers.at(i),
-                    0, sizeof(UniformBufferObject));
-
-            vk::DescriptorImageInfo
-                imageInfo(*m_utextureSampler, *m_utextureImageView[j],
-                        vk::ImageLayout::eShaderReadOnlyOptimal);
-
-            std::array<vk::WriteDescriptorSet, 2> descriptorWrites = {
-                vk::WriteDescriptorSet(*m_descriptorSets[j].at(i), 0, 0, 1,
-                        vk::DescriptorType::eUniformBuffer,
-                        nullptr, &bufferInfo),
-                vk::WriteDescriptorSet(*m_descriptorSets[j].at(i), 1, 0, 1,
-                        vk::DescriptorType::eCombinedImageSampler,
-                        &imageInfo, nullptr) };
-            m_device->updateDescriptorSets(descriptorWrites, {});
-        }
+        std::array<vk::WriteDescriptorSet, 2> descriptorWrites = {
+            vk::WriteDescriptorSet(*m_descriptorSets.at(i), 0, 0, 1,
+                    vk::DescriptorType::eUniformBuffer,
+                    nullptr, &bufferInfo),
+            vk::WriteDescriptorSet(*m_descriptorSets.at(i), 1, 0, 1,
+                    vk::DescriptorType::eCombinedImageSampler,
+                    &imageInfo, nullptr) };
+        m_device->updateDescriptorSets(descriptorWrites, {});
     }
 }
 
@@ -1258,12 +1253,12 @@ void Render::createCommandBuffers(int index)
 
             m_commandBuffers.at(i)->bindDescriptorSets(
                     vk::PipelineBindPoint::eGraphics, *m_pipelineLayout, 0, 1,
-                    &*m_descriptorSets[xx].at(i), 0, nullptr);
+                    &*m_descriptorSets.at(i), 0, nullptr);
 
             // m_commandBuffers.at(i)->draw(static_cast<uint32_t>(vertices[0].size()),
                     // 1, 0, 0);
             m_commandBuffers.at(i)->draw(static_cast<uint32_t>(vertices[0].size()),
-                    1, 0, 0);
+                    1, 0, xx);
         }
         m_commandBuffers.at(i)->endRenderPass();
         m_commandBuffers.at(i)->end();
