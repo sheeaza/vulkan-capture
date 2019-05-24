@@ -69,17 +69,9 @@ int main()
                 fCount++;
 
                 render.updateTexture(i, index[i]);
-                // render.updateTexture(i, index);
-                // render.updateTexture(i, index);
-                // render.updateTexture(i, index);
-            }
-            render.render(0);
-            for (size_t i = 0; i < captures.size(); i++) {
-                if (index[i] == -1)
-                    continue;
-
                 captures[i].doneFrame(index[i]);
             }
+            render.render(0);
 
             if (fCount != 0) {
                 currentTime = glfwGetTime();
