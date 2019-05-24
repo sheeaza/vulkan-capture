@@ -102,10 +102,10 @@ private:
     std::vector<std::array<vk::UniqueDeviceMemory, 4>> m_ustageMems;
     std::vector<std::array<void *, 4>> m_stageMemMaps;
 
-    std::vector<vk::UniqueBuffer> m_uVertexBuffers;
-    std::vector<vk::UniqueDeviceMemory> m_uVertexBufferMems;
-    vk::UniqueBuffer m_indexBuffer;
-    vk::UniqueDeviceMemory m_indexBufferMemory;
+    vk::UniqueBuffer m_uVertexBuffer;
+    vk::UniqueDeviceMemory m_uVertexBufferMem;
+    vk::UniqueBuffer m_uIndexBuffer;
+    vk::UniqueDeviceMemory m_uIndexBufferMemory;
 
     std::vector<vk::UniqueBuffer> m_uniformBuffers;
     std::vector<vk::UniqueDeviceMemory> m_uniformBuffersMemory;

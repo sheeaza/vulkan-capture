@@ -20,28 +20,33 @@
 #define HEIGHT 600
 static const int MAX_FRAMES_IN_FLIGHT = 2;
 
-const std::vector<std::vector<Render::Vertex>>  vertices = {
-    {
-        {{-1.0f, -1.0f}, {1.0f, 0.0f}},
-        {{0.0f, -1.0f}, {0.0f, 0.0f}},
-        {{-1.0f, 0.0f},  {1.0f, 1.0f}},
-        {{0.0f, 0.0f}, {0.0f, 1.0f}}
-    }, {
-        {{0.0f, -1.0f}, {1.0f, 0.0f}},
-        {{1.0f, -1.0f}, {0.0f, 0.0f}},
-        {{0.0f, 0.0f},  {1.0f, 1.0f}},
-        {{1.0f, 0.0f}, {0.0f, 1.0f}}
-    }, {
-        {{-1.0f, 0.0f}, {1.0f, 0.0f}},
-        {{0.0f, 0.0f}, {0.0f, 0.0f}},
-        {{-1.0f, 1.0f},  {1.0f, 1.0f}},
-        {{0.0f, 1.0f}, {0.0f, 1.0f}}
-    }, {
-        {{0.0f, 0.0f}, {1.0f, 0.0f}},
-        {{1.0f, 0.0f}, {0.0f, 0.0f}},
-        {{0.0f, 1.0f},  {1.0f, 1.0f}},
-        {{1.0f, 1.0f}, {0.0f, 1.0f}}
-    }
+const std::vector<Render::Vertex> vertices = {
+    {{-1.0f, -1.0f}, {1.0f, 0.0f}},
+    {{0.0f, -1.0f}, {0.0f, 0.0f}},
+    {{-1.0f, 0.0f},  {1.0f, 1.0f}},
+    {{0.0f, 0.0f}, {0.0f, 1.0f}},
+
+    {{0.0f, -1.0f}, {1.0f, 0.0f}},
+    {{1.0f, -1.0f}, {0.0f, 0.0f}},
+    {{0.0f, 0.0f},  {1.0f, 1.0f}},
+    {{1.0f, 0.0f}, {0.0f, 1.0f}},
+
+    {{-1.0f, 0.0f}, {1.0f, 0.0f}},
+    {{0.0f, 0.0f}, {0.0f, 0.0f}},
+    {{-1.0f, 1.0f},  {1.0f, 1.0f}},
+    {{0.0f, 1.0f}, {0.0f, 1.0f}},
+
+    {{0.0f, 0.0f}, {1.0f, 0.0f}},
+    {{1.0f, 0.0f}, {0.0f, 0.0f}},
+    {{0.0f, 1.0f},  {1.0f, 1.0f}},
+    {{1.0f, 1.0f}, {0.0f, 1.0f}}
+};
+
+const std::vector<uint16_t> indices = {
+    0, 1, 2, 3,
+    4, 5, 6, 7,
+    8, 9, 10, 11,
+    12, 13, 14, 15
 };
 
 const std::vector<const char*> Render::validationLayers = {
@@ -91,53 +96,6 @@ Render::~Render()
             m_device->unmapMemory(*subStageMem);
         }
     }
-    // m_device->waitIdle();
-
-    // std::cout << __LINE__ << std::endl;
-    // cleanupSwapChain();
-
-    // m_device->destroyBuffer(*m_indexBuffer);
-    // m_device->freeMemory(*m_indexBufferMemory);
-
-    // m_device->destroyBuffer(*m_uVertexBuffers);
-    // m_device->freeMemory(*m_uVertexBufferMems);
-
-    // std::cout << "size " << m_inFlightFences.size() << std::endl;
-
-    // for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        // // vkDestroySemaphore(m_device, m_renderFinishedSemaphores.at(i), nullptr);
-        // // vkDestroySemaphore(m_device, m_imageAvailableSemaphores.at(i), nullptr);
-        // // vkDestroyFence(m_device, m_inFlightFences.at(i), nullptr);
-        // m_device->destroySemaphore(*m_renderFinishedSemaphores.at(i));
-        // m_device->destroySemaphore(*m_imageAvailableSemaphores.at(i));
-        // m_device->destroyFence(*m_inFlightFences.at(i));
-    // }
-
-    // // vkDestroyCommandPool(m_device, m_commandPool, nullptr);
-    // m_device->destroyCommandPool(*m_commandPool);
-
-    // // vkDestroyDevice(m_device, nullptr);
-    // m_device->destroy();
-
-#ifndef NDEBUG
-    // m_instance->destroyDebugReportCallbackEXT(*m_debugCallback);
-#endif
-
-    // m_instance->destroySurfaceKHR(*m_surface);
-    // m_instance->destroy();
-
-    // for (auto &imageView : m_swapChainImageViews) {
-        // m_device->destroyImageView(*imageView);
-    // }
-    // m_device->destroySwapchainKHR(*m_swapChain);
-    // m_device->destroy();
-    // m_instance->destroySurfaceKHR(*m_surface);
-    // m_instance->destroy();
-
-    // glfwDestroyWindow(m_window);
-
-    // glfwTerminate();
-    // std::cout << __LINE__ << std::endl;
 }
 
 void Render::init()
@@ -164,7 +122,7 @@ void Render::init()
     createTextureImageView();
     createTextureSampler();
     createVertexBuffer();
-    // createIndexBuffer();
+    createIndexBuffer();
     createUniformBuffers();
     createDescriptorPool();
     createDescriptorSets();
@@ -238,22 +196,6 @@ void Render::render(int index)
             vk::ClearColorValue(
                 std::array<float, 4>({0.0f, 0.0f, 0.0f, 1.0f})));
     updateUniformBuffer(imageIndex);
-    // for (size_t i = 0; i < m_commandBuffers.size(); i++) {
-        // m_commandBuffers[i]->begin(vk::CommandBufferBeginInfo(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
-        // m_commandBuffers[i]->beginRenderPass(
-            // vk::RenderPassBeginInfo(*m_renderPass,
-                                    // *m_swapChainFramebuffers.at(i),
-                                    // vk::Rect2D(vk::Offset2D(0, 0),
-                                               // m_swapChainExtent),
-                                    // 1, &clearColor),
-            // vk::SubpassContents::eInline);
-        // m_commandBuffers[i]->bindPipeline(vk::PipelineBindPoint::eGraphics,*m_graphicsPipeline);
-        // vk::DeviceSize offset = 0;
-        // m_commandBuffers[i]->bindVertexBuffers(0, *m_uVertexBuffers[index], offset);
-        // m_commandBuffers[i]->draw(static_cast<uint32_t>(vertices[0].size()), 1, 0, 0);
-        // m_commandBuffers.at(i)->endRenderPass();
-        // m_commandBuffers[i]->end();
-    // }
 
     vk::PipelineStageFlags waitStages[] =
         {vk::PipelineStageFlagBits::eColorAttachmentOutput};
@@ -1044,60 +986,53 @@ void Render::createTextureSampler()
 
 void Render::createVertexBuffer()
 {
-    m_uVertexBuffers.resize(4);
-    m_uVertexBufferMems.resize(4);
 
-    for (size_t i = 0; i < m_uVertexBuffers.size(); i++) {
-        auto &vertex = vertices[i];
+    uint32_t bufferSize = sizeof(vertices[0]) * vertices.size();
 
-        uint32_t bufferSize = sizeof(vertex[0]) * vertex.size();
+    m_uVertexBuffer = m_device->createBufferUnique(
+            vk::BufferCreateInfo({}, bufferSize,
+                vk::BufferUsageFlagBits::eVertexBuffer));
+    vk::MemoryRequirements memRequirements =
+        m_device->getBufferMemoryRequirements(*m_uVertexBuffer);
 
-        m_uVertexBuffers[i] = m_device->createBufferUnique(
-                vk::BufferCreateInfo({}, bufferSize,
-                    vk::BufferUsageFlagBits::eVertexBuffer));
-        vk::MemoryRequirements memRequirements =
-            m_device->getBufferMemoryRequirements(*m_uVertexBuffers[i]);
+    uint32_t memoryTypeIndex =
+        findMemoryType(memRequirements.memoryTypeBits,
+                vk::MemoryPropertyFlagBits::eHostVisible |
+                vk::MemoryPropertyFlagBits::eHostCoherent);
+    m_uVertexBufferMem = m_device->allocateMemoryUnique(
+            vk::MemoryAllocateInfo(memRequirements.size, memoryTypeIndex));
 
-        uint32_t memoryTypeIndex =
-            findMemoryType(memRequirements.memoryTypeBits,
-                    vk::MemoryPropertyFlagBits::eHostVisible |
-                    vk::MemoryPropertyFlagBits::eHostCoherent);
-        m_uVertexBufferMems[i] = m_device->allocateMemoryUnique(
-                vk::MemoryAllocateInfo(memRequirements.size, memoryTypeIndex));
+    void *data = m_device->mapMemory(*m_uVertexBufferMem, 0,
+            memRequirements.size);
+    memcpy(data, vertices.data(), bufferSize);
+    m_device->unmapMemory(*m_uVertexBufferMem);
 
-        void *data = m_device->mapMemory(*m_uVertexBufferMems[i], 0,
-                memRequirements.size);
-        memcpy(data, vertex.data(), bufferSize);
-        m_device->unmapMemory(*m_uVertexBufferMems[i]);
-
-        m_device->bindBufferMemory(*m_uVertexBuffers[i], *m_uVertexBufferMems[i], 0);
-    }
-
+    m_device->bindBufferMemory(*m_uVertexBuffer, *m_uVertexBufferMem, 0);
 }
 
 void Render::createIndexBuffer()
 {
-    // uint32_t bufferSize = sizeof(indices[0]) * indices.size();
+    uint32_t bufferSize = sizeof(indices[0]) * indices.size();
 
-    // m_indexBuffer = m_device->createBufferUnique(
-            // vk::BufferCreateInfo({}, bufferSize,
-                                 // vk::BufferUsageFlagBits::eIndexBuffer));
-    // vk::MemoryRequirements memRequirements =
-        // m_device->getBufferMemoryRequirements(*m_indexBuffer);
+    m_uIndexBuffer = m_device->createBufferUnique(
+            vk::BufferCreateInfo({}, bufferSize,
+                                 vk::BufferUsageFlagBits::eIndexBuffer));
+    vk::MemoryRequirements memRequirements =
+        m_device->getBufferMemoryRequirements(*m_uIndexBuffer);
 
-    // uint32_t memoryTypeIndex =
-        // findMemoryType(memRequirements.memoryTypeBits,
-                       // vk::MemoryPropertyFlagBits::eHostVisible |
-                       // vk::MemoryPropertyFlagBits::eHostCoherent);
-    // m_indexBufferMemory = m_device->allocateMemoryUnique(
-            // vk::MemoryAllocateInfo(memRequirements.size, memoryTypeIndex));
+    uint32_t memoryTypeIndex =
+        findMemoryType(memRequirements.memoryTypeBits,
+                       vk::MemoryPropertyFlagBits::eHostVisible |
+                       vk::MemoryPropertyFlagBits::eHostCoherent);
+    m_uIndexBufferMemory = m_device->allocateMemoryUnique(
+            vk::MemoryAllocateInfo(memRequirements.size, memoryTypeIndex));
 
-    // void *data = m_device->mapMemory(*m_indexBufferMemory, 0,
-                                     // memRequirements.size);
-    // memcpy(data, indices.data(), bufferSize);
-    // m_device->unmapMemory(*m_indexBufferMemory);
+    void *data = m_device->mapMemory(*m_uIndexBufferMemory, 0,
+                                     memRequirements.size);
+    memcpy(data, indices.data(), bufferSize);
+    m_device->unmapMemory(*m_uIndexBufferMemory);
 
-    // m_device->bindBufferMemory(*m_indexBuffer, *m_indexBufferMemory, 0);
+    m_device->bindBufferMemory(*m_uIndexBuffer, *m_uIndexBufferMemory, 0);
 }
 
 uint32_t Render::findMemoryType(uint32_t typeFilter,
@@ -1246,22 +1181,19 @@ void Render::createCommandBuffers(int index)
         m_commandBuffers.at(i)->bindPipeline(vk::PipelineBindPoint::eGraphics,
                                              *m_graphicsPipeline);
 
-        for (int xx = 0; xx < m_uVertexBuffers.size(); xx++) {
-            vk::DeviceSize offset = 0;
-            m_commandBuffers.at(i)->bindVertexBuffers(0, *m_uVertexBuffers[xx], offset);
-            // m_commandBuffers.at(i)->bindVertexBuffers(0, *m_uVertexBuffers[index], offset);
-            // m_commandBuffers.at(i)->bindIndexBuffer(*m_indexBuffer, 0,
-            // vk::IndexType::eUint16);
+        vk::DeviceSize offset = 0;
+        m_commandBuffers.at(i)->bindVertexBuffers(0, *m_uVertexBuffer, offset);
+        m_commandBuffers.at(i)->bindIndexBuffer(*m_uIndexBuffer, 0,
+                                                vk::IndexType::eUint16);
+        m_commandBuffers.at(i)->bindDescriptorSets(
+                vk::PipelineBindPoint::eGraphics, *m_pipelineLayout, 0, 1,
+                &*m_descriptorSets.at(i), 0, nullptr);
 
-            m_commandBuffers.at(i)->bindDescriptorSets(
-                    vk::PipelineBindPoint::eGraphics, *m_pipelineLayout, 0, 1,
-                    &*m_descriptorSets.at(i), 0, nullptr);
-
-            // m_commandBuffers.at(i)->draw(static_cast<uint32_t>(vertices[0].size()),
-                    // 1, 0, 0);
-            m_commandBuffers.at(i)->draw(static_cast<uint32_t>(vertices[0].size()),
-                    1, 0, xx);
+        for (int j = 0; j < 4; j++) {
+            m_commandBuffers.at(i)->drawIndexed(4, 1, 0,
+                    j * 4, j);
         }
+
         m_commandBuffers.at(i)->endRenderPass();
         m_commandBuffers.at(i)->end();
     }
