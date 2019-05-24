@@ -91,11 +91,7 @@ Render::Render()
 
 Render::~Render()
 {
-    for (auto &stageMem : m_ustageMems) {
-        for (auto &subStageMem : stageMem) {
-            m_device->unmapMemory(*subStageMem);
-        }
-    }
+    m_device->unmapMemory(*m_uStageMem);
 }
 
 void Render::init()
@@ -134,12 +130,14 @@ void Render::updateTexture(int index, int subIndex)
 {
     int imageWidth = 1280;
     int imageHeight = 800;
+    int frameSize = imageWidth * imageHeight * 4;
 
     transitionImageLayout(*m_utextureImage, vk::ImageLayout::eUndefined,
                           vk::ImageLayout::eTransferDstOptimal,
                           vk::PipelineStageFlagBits::eTopOfPipe,
                           vk::PipelineStageFlagBits::eTransfer);
-    vk::BufferImageCopy copyRegion(0, 0, 0,
+    vk::BufferImageCopy copyRegion(frameSize * (index * 4 + subIndex),
+                                   0, 0,
                                    vk::ImageSubresourceLayers(
                                        vk::ImageAspectFlagBits::eColor,
                                        0, index, 1), vk::Offset3D(0, 0, 0),
@@ -152,7 +150,7 @@ void Render::updateTexture(int index, int subIndex)
     ucmdBuffers[0]->begin(
             vk::CommandBufferBeginInfo(
                 vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    ucmdBuffers[0]->copyBufferToImage(*m_ustageBuffers[index][subIndex], *m_utextureImage,
+    ucmdBuffers[0]->copyBufferToImage(*m_uStageBuffer, *m_utextureImage,
                                          vk::ImageLayout::eTransferDstOptimal,
                                          copyRegion);
     ucmdBuffers[0]->end();
@@ -855,59 +853,27 @@ void Render::createTextureImage()
 {
     int imageWidth = 1280;
     int imageHeight = 800;
+    int frameSize = imageWidth * imageHeight * 4;
 
-    // cv::Mat image = cv::imread("src_1.jpg");
-    // if (image.empty()) {
-        // throw std::runtime_error("failed to openg image");
-    // }
-    // cv::cvtColor(image, image, cv::COLOR_BGR2BGRA);
-
-    // vk::UniqueBuffer stageBuffer;
-    // vk::UniqueDeviceMemory stageMem;
-    // vk::MemoryRequirements stageMemReq;
-    // stageBuffer = m_device->createBufferUnique(
-            // vk::BufferCreateInfo({}, image.cols * image.rows * 4,
-                                 // vk::BufferUsageFlagBits::eTransferSrc));
-    // stageMemReq = m_device->getBufferMemoryRequirements(*stageBuffer);
-    // uint32_t stageMemTypeIndex =
-        // findMemoryType(stageMemReq.memoryTypeBits,
-                       // vk::MemoryPropertyFlagBits::eHostVisible |
-                       // vk::MemoryPropertyFlagBits::eHostCoherent);
-    // stageMem = m_device->allocateMemoryUnique(
-            // vk::MemoryAllocateInfo(stageMemReq.size, stageMemTypeIndex));
-    // m_device->bindBufferMemory(*stageBuffer, *stageMem, 0);
-
-    // void *data = m_device->mapMemory(*stageMem, 0, stageMemReq.size);
-    // memcpy(data, image.data, stageMemReq.size);
-    // m_device->unmapMemory(*stageMem);
-
-    m_ustageBuffers.resize(4);
-    m_ustageMems.resize(4);
     m_stageMemMaps.resize(4);
 
-    for (size_t i = 0; i < m_ustageBuffers.size(); i++) {
-        for (size_t j = 0; j < m_ustageBuffers[i].size(); j++) {
-            vk::UniqueBuffer stageBuffer;
-            vk::UniqueDeviceMemory stageMem;
-            vk::MemoryRequirements stageMemReq;
+    m_uStageBuffer = m_device->createBufferUnique(
+            vk::BufferCreateInfo({}, frameSize * 16,
+                vk::BufferUsageFlagBits::eTransferSrc));
+    vk::MemoryRequirements stageMemReq = m_device->getBufferMemoryRequirements(*m_uStageBuffer);
+    uint32_t stageMemTypeIndex =
+        findMemoryType(stageMemReq.memoryTypeBits,
+                vk::MemoryPropertyFlagBits::eHostVisible |
+                vk::MemoryPropertyFlagBits::eHostCoherent);
+    m_uStageMem = m_device->allocateMemoryUnique(
+            vk::MemoryAllocateInfo(stageMemReq.size, stageMemTypeIndex));
+    m_device->bindBufferMemory(*m_uStageBuffer, *m_uStageMem, 0);
 
-            stageBuffer = m_device->createBufferUnique(
-                    vk::BufferCreateInfo({}, imageWidth * imageHeight * 4,
-                        vk::BufferUsageFlagBits::eTransferSrc));
-            stageMemReq = m_device->getBufferMemoryRequirements(*stageBuffer);
-            uint32_t stageMemTypeIndex =
-                findMemoryType(stageMemReq.memoryTypeBits,
-                        vk::MemoryPropertyFlagBits::eHostVisible |
-                        vk::MemoryPropertyFlagBits::eHostCoherent);
-            stageMem = m_device->allocateMemoryUnique(
-                    vk::MemoryAllocateInfo(stageMemReq.size, stageMemTypeIndex));
-            m_device->bindBufferMemory(*stageBuffer, *stageMem, 0);
-
-            void *data = m_device->mapMemory(*stageMem, 0, stageMemReq.size);
-
-            m_ustageBuffers[i][j] = std::move(stageBuffer);
-            m_ustageMems[i][j] = std::move(stageMem);
+    void *data = m_device->mapMemory(*m_uStageMem, 0, frameSize * 16);
+    for (size_t i = 0; i < m_stageMemMaps.size(); i++) {
+        for (size_t j = 0; j < m_stageMemMaps[i].size(); j++) {
             m_stageMemMaps[i][j] = data;
+            data = static_cast<char*>(data) + frameSize;
         }
     }
 
@@ -930,35 +896,6 @@ void Render::createTextureImage()
     m_utextureMem = m_device->allocateMemoryUnique(
             vk::MemoryAllocateInfo(memoryRequirements.size, memoryTypeIndex));
     m_device->bindImageMemory(*m_utextureImage, *m_utextureMem, 0);
-
-    // transitionImageLayout(*m_utextureImage, vk::ImageLayout::eUndefined,
-                          // vk::ImageLayout::eTransferDstOptimal,
-                          // vk::PipelineStageFlagBits::eTopOfPipe,
-                          // vk::PipelineStageFlagBits::eTransfer);
-    // vk::BufferImageCopy copyRegion(0, 0, 0,
-                                   // vk::ImageSubresourceLayers(
-                                       // vk::ImageAspectFlagBits::eColor,
-                                       // 0, 0, 1), vk::Offset3D(0, 0, 0),
-                                   // vk::Extent3D(imageWidth, imageHeight, 1));
-    // std::vector<vk::UniqueCommandBuffer> ucmdBuffers =
-        // m_device->allocateCommandBuffersUnique(
-                // vk::CommandBufferAllocateInfo(*m_commandPool,
-                                              // vk::CommandBufferLevel::ePrimary,
-                                              // 1));
-    // ucmdBuffers[0]->begin(
-            // vk::CommandBufferBeginInfo(
-                // vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
-    // ucmdBuffers[0]->copyBufferToImage(*stageBuffer, *m_utextureImage,
-                                         // vk::ImageLayout::eTransferDstOptimal,
-                                         // copyRegion);
-    // ucmdBuffers[0]->end();
-    // m_graphicsQueue.submit(vk::SubmitInfo(0, nullptr, nullptr, 1,
-                                          // &*ucmdBuffers[0]), {});
-    // m_graphicsQueue.waitIdle();
-    // transitionImageLayout(*m_utextureImage, vk::ImageLayout::eTransferDstOptimal,
-                          // vk::ImageLayout::eShaderReadOnlyOptimal,
-                          // vk::PipelineStageFlagBits::eTransfer,
-                          // vk::PipelineStageFlagBits::eFragmentShader);
 }
 
 void Render::createTextureImageView()
@@ -986,7 +923,6 @@ void Render::createTextureSampler()
 
 void Render::createVertexBuffer()
 {
-
     uint32_t bufferSize = sizeof(vertices[0]) * vertices.size();
 
     m_uVertexBuffer = m_device->createBufferUnique(

@@ -98,8 +98,8 @@ private:
     vk::UniqueDeviceMemory m_utextureMem;
     vk::UniqueImageView m_utextureImageView;
     vk::UniqueSampler m_utextureSampler;
-    std::vector<std::array<vk::UniqueBuffer, 4>> m_ustageBuffers;
-    std::vector<std::array<vk::UniqueDeviceMemory, 4>> m_ustageMems;
+    vk::UniqueBuffer m_uStageBuffer;
+    vk::UniqueDeviceMemory m_uStageMem;
     std::vector<std::array<void *, 4>> m_stageMemMaps;
 
     vk::UniqueBuffer m_uVertexBuffer;
