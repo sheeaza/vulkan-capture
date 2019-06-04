@@ -3,6 +3,10 @@ This is used for test v4l2 userptr capture and rendered by vulkan.
 
 ## Building step for imx8qm b0 mek:
 
+1). install vulkan shader compiler refer to the website:
+https://vulkan.lunarg.com/sdk/home#linux
+
+2). 
 ```
 $ git clone https://github.com/latiaoxia/vulkan-capture.git
 
