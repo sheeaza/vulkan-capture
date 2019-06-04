@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(vulkan-v4l2)
+project(vulkan-cap)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
