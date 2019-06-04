@@ -17,7 +17,8 @@ all the outputs will be in ```Debug/bin```, copy to your platform and run:
 ```
 $ scp Debug/bin/* <user>@<ip-addr>:/dir/to/copy
 ```
-make sure you have connected the camera at ```/dev/video0```.
+make sure you have connected the camera at ```/dev/video4```.
+This is hard coded at ```captures[i].open("/dev/video4",```.
 ```
 $ cd /dir/to/bin
 $ ./vulkan-cap
