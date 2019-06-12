@@ -2,6 +2,8 @@
 This is used for test v4l2 userptr capture and rendered by vulkan.
 
 ## Building step for imx8qm b0 mek:
+### Note you need to compile and install glfw lib first
+see https://www.glfw.org/docs/latest/compile.html
 
 1). install vulkan shader compiler refer to the website:
 https://vulkan.lunarg.com/sdk/home#linux
